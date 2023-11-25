@@ -1,0 +1,4 @@
+# Arduino Python BLE
+
+A simple project for a Arduino to communicate with a python script Blutooth Low Energy.
+The Arduino is a Nano 33 BLE, the python script will use *bleak* to communicate using BLE.
