@@ -1,4 +1,36 @@
 # Arduino Python BLE
 
 A simple project for a Arduino to communicate with a python script Blutooth Low Energy.
-The Arduino is a Nano 33 BLE, the python script will use *bleak* to communicate using BLE.
+The Arduino is a Nano 33 BLE, the python script will use the *bleak* python package
+to communicate using BLE. The Arduino code uses PlatformIO,
+wich assumes you have PlatformIO installed and added to PATH.
+
+## How To Use
+
+Upload the code in src/main.cpp to your Arduino Nano
+
+if you are using the PlatformIO code provided:
+    pio run -t upload -e nano33ble
+
+if you would prefer to use Arduino IDE, copy the main.cpp code and
+upload to Arduino Nano
+
+Then to find your Arduino Nano's address run the find_devices.py
+    python find_devices.py
+
+Your device's address will be "__:__:__:__:__: IMU" where
+"__:__:__:__:__" corresponds to the address and "IMU" the device name
+
+ Insert this address into acc_gyro.py
+
+ With the Arduino Nano running, run acc_gyro.py
+    python acc_gyro.py
+
+And you should see the Accelerometer and Gyroscope data on the terminal
+
+## Notes
+
+The bleak version has to be the one specified in python/requirements.txt
+to install this version run
+    pip install -r ./python/requirements.txt
+
