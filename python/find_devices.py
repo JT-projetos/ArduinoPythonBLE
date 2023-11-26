@@ -9,4 +9,4 @@ async def main():
 
 asyncio.run(main())
 
-# MAC Arduino E4:A7:60:CE:AB:79 or 6B:9E:3C:72:A1:91
+# MAC Arduino E4:A7:60:CE:AB:79: IMU
