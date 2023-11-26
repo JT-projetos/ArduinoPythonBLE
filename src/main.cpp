@@ -1,116 +1,86 @@
 #include <ArduinoBLE.h>
+#include <Arduino_LSM9DS1.h>
 
-enum {
-  GESTURE_NONE  = -1,
-  GESTURE_UP    = 0,
-  GESTURE_DOWN  = 1,
-  GESTURE_LEFT  = 2,
-  GESTURE_RIGHT = 3
-};
+// Declare a BLE service with UUID:
+BLEService IMUservice("19B10010-E8F2-537E-4F6C-D104768A1214");
+// Declare two BLE characteristics for the accelerometer and gyroscope data, both with UUIDs:
+BLECharacteristic accelData("19B10011-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify, 20);
+BLECharacteristic gyroData("19B10012-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify, 20);
 
-const char* deviceServiceUuid = "19b10000-e8f2-537e-4f6c-d104768a1214";
-const char* deviceServiceCharacteristicUuid = "19b10001-e8f2-537e-4f6c-d104768a1214";
-
-int gesture = -1;
-
-BLEService gestureService(deviceServiceUuid);
-BLEByteCharacteristic gestureCharacteristic(deviceServiceCharacteristicUuid, BLERead | BLEWrite);
-
-
-void writeGesture(int gesture) {
-  Serial.println("- Characteristic <gesture_type> has changed!");
-
-  switch (gesture) {
-    case GESTURE_UP:
-      Serial.println("* Actual value: UP (red LED on)");
-      Serial.println(" ");
-      //digitalWrite(LEDR, LOW);
-      //digitalWrite(LEDG, HIGH);
-      //digitalWrite(LEDB, HIGH);
-      digitalWrite(LED_BUILTIN, LOW);
-      break;
-    case GESTURE_DOWN:
-      Serial.println("* Actual value: DOWN (green LED on)");
-      Serial.println(" ");
-      //digitalWrite(LEDR, HIGH);
-      //digitalWrite(LEDG, LOW);
-      //digitalWrite(LEDB, HIGH);
-      digitalWrite(LED_BUILTIN, LOW);
-      break;
-    case GESTURE_LEFT:
-      Serial.println("* Actual value: LEFT (blue LED on)");
-      Serial.println(" ");
-      //digitalWrite(LEDR, HIGH);
-      //digitalWrite(LEDG, HIGH);
-      //digitalWrite(LEDB, LOW);
-      digitalWrite(LED_BUILTIN, LOW);
-      break;
-    case GESTURE_RIGHT:
-      Serial.println("* Actual value: RIGHT (built-in LED on)");
-      Serial.println(" ");
-      //digitalWrite(LEDR, HIGH);
-      //digitalWrite(LEDG, HIGH);
-      //digitalWrite(LEDB, HIGH);
-      digitalWrite(LED_BUILTIN, HIGH);
-      break;
-    default:
-      //digitalWrite(LEDR, HIGH);
-      //digitalWrite(LEDG, HIGH);
-      //digitalWrite(LEDB, HIGH);
-      digitalWrite(LED_BUILTIN, LOW);
-      break;
-  }
-}
 
 void setup() {
   Serial.begin(9600);
-  while (!Serial);
+  while(!Serial);
+  Serial.println("Started");
 
-  //pinMode(LEDR, OUTPUT);
-  //pinMode(LEDG, OUTPUT);
-  //pinMode(LEDB, OUTPUT);
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  //digitalWrite(LEDR, HIGH);
-  //digitalWrite(LEDG, HIGH);
-  //digitalWrite(LEDB, HIGH);
-  digitalWrite(LED_BUILTIN, LOW);
-
-
+  // Initialize the BLE module
   if (!BLE.begin()) {
-    Serial.println("- Starting Bluetooth® Low Energy module failed!");
-    while (1);
+    // If the BLE module fails to initialize, enter an infinite loop
+    while (1) {
+    }
   }
 
-  BLE.setLocalName("Arduino Nano 33 BLE (Peripheral)");
-  BLE.setAdvertisedService(gestureService);
-  gestureService.addCharacteristic(gestureCharacteristic);
-  BLE.addService(gestureService);
-  gestureCharacteristic.writeValue(-1);
-  BLE.advertise();
+  // Initialize the IMU
+  if (!IMU.begin()) {
+    // If the IMU fails to initialize, enter an infinite loop
+    while (1) {
+    }
+  }
 
-  Serial.println("Nano 33 BLE (Peripheral Device)");
-  Serial.println(" ");
+  // Set the device name and local name to "IMU"
+  BLE.setDeviceName("IMU");
+  BLE.setLocalName("IMU");
+
+  // Add the service to the BLE module
+  BLE.setAdvertisedService(IMUservice);
+
+  // Add the two characteristics to the service
+  IMUservice.addCharacteristic(accelData);
+  IMUservice.addCharacteristic(gyroData);
+
+  // Add the service to the BLE module
+  BLE.addService(IMUservice);
+
+  // Set the connection interval for the BLE connection
+  BLE.setConnectionInterval(8, 8);
+
+  // Enable the BLE module to be connectable
+  BLE.setConnectable(true);
+
+  // Start advertising the BLE connection
+  BLE.advertise();
 }
 
 void loop() {
+  float acX, acY, acZ, gX, gY, gZ;
+
+  // Get the connected BLE central device
   BLEDevice central = BLE.central();
-  Serial.println("- Discovering central device...");
-  delay(500);
-
+  Serial.println("Got connected central BLE device");
   if (central) {
-    Serial.println("* Connected to central device!");
-    Serial.print("* Device MAC address: ");
-    Serial.println(central.address());
-    Serial.println(" ");
-
+    // If there is a connected BLE central device, enter an infinite loop
+    Serial.println("Connected to central BLE device");
     while (central.connected()) {
-      if (gestureCharacteristic.written()) {
-        gesture = gestureCharacteristic.value();
-        writeGesture(gesture);
-      }
-    }
+      // Read the accelerometer data from the IMU device
+      IMU.readAcceleration(acX, acY, acZ);
 
-    Serial.println("* Disconnected to central device!");
+      // Create a string with the accelerometer data
+      String accelString = String(acX) + "," + String(acY) + "," + String(acZ);
+
+      // Write the accelerometer data to the BLE characteristic
+      accelData.writeValue(accelString.c_str());
+
+      // Read the gyroscope data from the IMU device
+      IMU.readGyroscope(gX, gY, gZ);
+
+      // Create a string with the gyroscope data
+      String gyroString = String(gX) + "," + String(gY) + "," + String(gZ);
+
+      // Write the gyroscope data to the BLE characteristic
+      gyroData.writeValue(gyroString.c_str());
+
+      // Wait 7 milliseconds before sending the next data
+      delay(1000);
+    }
   }
 }
